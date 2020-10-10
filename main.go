@@ -77,14 +77,18 @@ func main() {
 		}
 	}
 	if *curPth == "" && len(pipeIn) == 0 {
-		log.Fatal("no data passed to programme to report coverage")
+		log.Fatal("No data passed to programme to report coverage.")
 	}
 
 	var lstXccRep XCCoverageReport
 	if *lstPth != "" {
 		lstXccRep, err = readReportFile(*lstPth)
-		if err != nil {
+		notExist := os.IsNotExist(err)
+		if err != nil && notExist == false {
 			log.Fatal(err)
+		}
+		if notExist {
+			fmt.Println("Previous report file not found. Continuing with current report only.")
 		}
 	}
 
