@@ -160,15 +160,15 @@ func inspectFileFuncs(file *File) {
 	}
 }
 
-func warnZeroFileCov(fPath string) {
-	fmt.Printf("::warning file=%s::File coverage is 0%%.\n", fPath)
+func warnZeroFileCov(filePth string) {
+	fmt.Printf("::warning file=%s::File coverage is 0%%.\n", strings.TrimPrefix(filePth, getWorkdir()))
 }
 
 func warnFuncCov(filePth string, lstFunc, curFunc *Function) {
 	if lstFunc.LineCoverage > curFunc.LineCoverage {
 		fmt.Printf(
 			"::warning file=%s,line=%d::Func coverage is lowered to %d%% (was %d%%).\n",
-			filePth,
+			strings.TrimPrefix(filePth, getWorkdir()),
 			curFunc.LineNumber,
 			percentify(curFunc.LineCoverage),
 			percentify(lstFunc.LineCoverage),
@@ -182,7 +182,7 @@ func warnZeroFuncCov(filePth string, curFunc *Function) {
 	if percentify(curFunc.LineCoverage) == 0 {
 		fmt.Printf(
 			"::warning file=%s,line=%d::Func coverage is 0%%.\n",
-			filePth,
+			strings.TrimPrefix(filePth, getWorkdir()),
 			curFunc.LineNumber,
 		)
 	}
