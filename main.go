@@ -76,6 +76,9 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	if *curPth == "" && len(pipeIn) == 0 {
+		log.Fatal("no data passed to programme to report coverage")
+	}
 
 	var lstXccRep XCCoverageReport
 	if *lstPth != "" {
@@ -121,6 +124,12 @@ func performReport(last, current *XCCoverageReport) {
 		)
 		os.Exit(1)
 	}
+	if percentify(current.LineCoverage) == 0 {
+		fmt.Print(
+			"::error::Code coverage 0%%.\n",
+		)
+		os.Exit(1)
+	}
 	fmt.Printf(
 		"Coverage is %d%%. Tested %d lines of %d.\n",
 		percentify(current.LineCoverage),
@@ -160,16 +169,13 @@ func inspectFileFuncs(file *File) {
 	}
 }
 
-func warnZeroFileCov(filePth string) {
-	fmt.Printf("::warning file=%s::File coverage is 0%%.\n", strings.TrimPrefix(filePth, getWorkdir()))
-}
-
 func warnFuncCov(filePth string, lstFunc, curFunc *Function) {
 	if lstFunc.LineCoverage > curFunc.LineCoverage {
 		fmt.Printf(
-			"::warning file=%s,line=%d::Func coverage is lowered to %d%% (was %d%%).\n",
+			"::warning file=%s,line=%d::%s coverage is lowered to %d%% (was %d%%).\n",
 			strings.TrimPrefix(filePth, getWorkdir()),
 			curFunc.LineNumber,
+			curFunc.Name,
 			percentify(curFunc.LineCoverage),
 			percentify(lstFunc.LineCoverage),
 		)
@@ -181,9 +187,10 @@ func warnFuncCov(filePth string, lstFunc, curFunc *Function) {
 func warnZeroFuncCov(filePth string, curFunc *Function) {
 	if percentify(curFunc.LineCoverage) == 0 {
 		fmt.Printf(
-			"::warning file=%s,line=%d::Func coverage is 0%%.\n",
+			"::warning file=%s,line=%d::%s coverage is 0%%.\n",
 			strings.TrimPrefix(filePth, getWorkdir()),
 			curFunc.LineNumber,
+			curFunc.Name,
 		)
 	}
 }
