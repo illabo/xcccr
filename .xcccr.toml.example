@@ -1,0 +1,8 @@
+ProjectPath   = "/Users/home/" # Usualy ok to leave empty. If empty gets current working dir at runtime.
+FilterTargets = ["CoreTests"]  # If a target name contains one of these substrings the target would be filtered. Empty string "" matches everything. Please note that if regex is used targets filtering has no effect.
+FilterPaths   = ["Tests","UITests","Constants.swift"] # If a path contains one of these substrings the path (file, dir) would be filtered. Empty string "" matches everything. Please note that if regex is used path filtering has no effect.
+FilterPattern = "[\\S\\s]*secret\\.json$" # Go flavored regex (non-PCRE!). Please check https://golang.org/pkg/regexp/ for more info. When used in config escape characters should be escaped twice for config parsing (unfortunately). Please note that if regex is used targets filtering has no effect.
+InvertFilter  = false  # Set `false` to disallow targets and paths in filters. Set `true` to allow only targets and paths in filters. Default `false`.
+IncludeMasked = false  # Skip recalculating coverage, just read from xccov report regardless masked (filtered) targets and paths. Default `false`.
+MeterLOC      = false  # Set `false` for coverage percent and `true` for number of LOCs e.g. 42/13 (now/was). Default `false`.
+Tolerance     = 5      # Percent. Default 0.

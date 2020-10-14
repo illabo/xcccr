@@ -1,0 +1,2 @@
+- This release only tested manually. Help wanted to cover with tests.
+- Some minor bugs are expected.
