@@ -12,6 +12,7 @@ This dead simple tool only works with Apple's `xccov` generated code coverage re
  `-i` | Invert filter. Applied to -rg and to targets/paths filter lists in config. If no filters supplied prevents reporting allowing nothing.
  `-m` | Include masked files coverage in total metrics. If true warnings would be produced only for unfiltered targets/paths, but total coverage would be  reported for all the files as listed in original xccov json.
  `-loc` | Count covered LOCs diff instead of percent coverage.
+ `-z` | Don't error on 0% coverage, produce warning only.
  `-cfg` | Path to config. Parameters passed with the flags have precedence and overrides the values stored in config. Config passed with this flag overrides default config at `.xcccr.toml`. If there aren't any config default values are used.
 
 

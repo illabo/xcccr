@@ -1,2 +1,2 @@
-- This release only tested manually. Help wanted to cover with tests.
-- Some minor bugs are expected.
+- No breaking changes. New `ZeroWarnOnly` parameter added to config. Please check examples.
+- This release still only tested manually. Help wanted to cover with tests.

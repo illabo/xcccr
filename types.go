@@ -42,6 +42,7 @@ type Config struct {
 	FilterPattern string
 	InvertFilter  bool
 	IncludeMasked bool
+	ZeroWarnOnly  bool
 	MeterLOC      bool
 	Tolerance     int
 }

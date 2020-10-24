@@ -65,6 +65,11 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 		false,
 		"Count covered LOCs diff instead of percent coverage.",
 	)
+	zeroWarn := flag.Bool(
+		"z",
+		false,
+		"Don't error on 0%% coverage, produce warning only.",
+	)
 	cfgPth := flag.String(
 		"cfg",
 		"",
@@ -102,6 +107,9 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 	}
 	if *meterLOC {
 		cfg.MeterLOC = true
+	}
+	if *zeroWarn {
+		cfg.ZeroWarnOnly = true
 	}
 	cfg.ProjectPath = *projRoot
 	if cfg.FilterPattern != "" {

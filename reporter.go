@@ -63,11 +63,26 @@ func produceVerdict(cfg *Config, tu *DiffUnit, last, current *XCCoverageReport) 
 		lstCovMsg = "last coverage is unavailable"
 	}
 	covMsg = fmt.Sprintf("%s: %s, %s.", covMsg, curCovMsg, lstCovMsg)
-	if lastPct > currentPct+cfg.Tolerance || currentPct == 0 {
-		fmt.Printf("::error::%s\n", covMsg)
-		os.Exit(1)
+	if lastPct > currentPct+cfg.Tolerance {
+		emmitError(covMsg)
 	}
-	fmt.Println(covMsg)
+	currentPctZero := currentPct == 0
+	if currentPctZero && cfg.ZeroWarnOnly == false {
+		emmitError(covMsg)
+	}
+	if currentPctZero {
+		covMsg = fmt.Sprintf("::warning::%s", covMsg)
+	}
+	exitMessage(covMsg)
+}
+
+func emmitError(message string) {
+	fmt.Printf("::error::%s\n", message)
+	os.Exit(1)
+}
+
+func exitMessage(message string) {
+	fmt.Println(message)
 	os.Exit(0)
 }
 
