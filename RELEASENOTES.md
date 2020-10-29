@@ -1,3 +1,9 @@
+
+### Hotfix (0.3.2)
+- Added missing warning message for file coverage % when reduced.
+- Some warnings weren't visible. Seem GitHub Actions warnings should be oneliners. Removed newline symbols.
+- Some code duplications cleaned.
+
 ### Hotfix (0.3.1)
 - "Increased" and "Decreased" messages was swapped. 
 

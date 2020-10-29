@@ -117,36 +117,48 @@ func diffTargets(rnCnd *RunConditions, lastTgt, currentTgt *Target) {
 			continue
 		}
 
-		fileReport := "\n"
-		if curFile.CoveredLines < lstFile.CoveredLines {
-			var warnMsg string
-			if rnCnd.Config.MeterLOC {
-				warnMsg = fmt.Sprintf("covered %dLOC, was %dLOC.", curFile.CoveredLines, lstFile.CoveredLines)
-			}
-			fileReport = fmt.Sprintf("File coverage is reduced: %s\n", warnMsg)
+		var fileReport string
+		if curFile.CoveredLines < lstFile.CoveredLines && rnCnd.Config.MeterLOC {
+			fileReport = fmt.Sprintf(
+				"File coverage is reduced: %s",
+				fmt.Sprintf(
+					"covered %dLOC, was %dLOC.",
+					curFile.CoveredLines,
+					lstFile.CoveredLines,
+				))
+		}
+		curPct := percentify(linesRatio(curFile.CoveredLines, curFile.ExecutableLines))
+		lstPct := percentify(linesRatio(lstFile.CoveredLines, lstFile.ExecutableLines))
+		if curPct < lstPct && !rnCnd.Config.MeterLOC {
+			fileReport = fmt.Sprintf(
+				"File coverage is reduced: %s",
+				fmt.Sprintf("covered %d%%, was %d%%.",
+					curPct,
+					lstPct,
+				))
 		}
 		if curFile.CoveredLines == 0 {
-			fileReport = "File is not covered.\n"
+			fileReport = "File is not covered."
 		}
 
 		for _, curFunc := range curFile.Functions {
-			if lstFunc, ok := lfsFlatFuncs[curFunc.Name]; ok {
-				fileReport = fmt.Sprintf("%s%s", fileReport, warnFuncCov(&lstFunc, &curFunc))
-			} else {
-				fileReport = fmt.Sprintf("%s%s", fileReport, warnZeroFuncCov(&curFunc))
+			lstFunc := lfsFlatFuncs[curFunc.Name]
+			cov := warnFuncCov(&lstFunc, &curFunc)
+			if cov != "" {
+				fileReport = fmt.Sprintf("%s %s", fileReport, cov)
 			}
 		}
-		if fileReport != "\n" {
-			fmt.Printf("::warning file=%s::%s", curFilePth, fileReport)
+		if strings.TrimSpace(fileReport) != "" {
+			fmt.Printf("::warning file=%s::%s\n", curFilePth, fileReport)
 		}
 
 	}
 }
 
 func warnFuncCov(lstFunc, curFunc *Function) string {
-	if lstFunc.LineCoverage > curFunc.LineCoverage {
+	if lstFunc != nil && lstFunc.LineCoverage > curFunc.LineCoverage {
 		return fmt.Sprintf(
-			"%d | %s coverage is lowered to %d%% (was %d%%).\n",
+			"Line %d: %s coverage is lowered to %d%% (was %d%%).",
 			curFunc.LineNumber,
 			curFunc.Name,
 			percentify(curFunc.LineCoverage),
@@ -160,7 +172,7 @@ func warnFuncCov(lstFunc, curFunc *Function) string {
 func warnZeroFuncCov(curFunc *Function) string {
 	if percentify(curFunc.LineCoverage) == 0 {
 		return fmt.Sprintf(
-			"%d | %s is not covered.\n",
+			"Line %d: %s is not covered.",
 			curFunc.LineNumber,
 			curFunc.Name,
 		)
