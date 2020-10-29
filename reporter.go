@@ -47,9 +47,9 @@ func produceVerdict(cfg *Config, tu *DiffUnit, last, current *XCCoverageReport) 
 	covMsg := "Code coverage is %s"
 
 	if lastPct > currentPct {
-		covMsg = fmt.Sprintf(covMsg, "increased")
-	} else if lastPct < currentPct {
 		covMsg = fmt.Sprintf(covMsg, "decreased")
+	} else if lastPct < currentPct {
+		covMsg = fmt.Sprintf(covMsg, "increased")
 	} else {
 		covMsg = fmt.Sprintf(covMsg, "not changed")
 	}
