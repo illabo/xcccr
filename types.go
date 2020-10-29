@@ -1,6 +1,9 @@
 package main
 
-import "regexp"
+import (
+	"regexp"
+	"sync"
+)
 
 // Report
 type XCCoverageReport struct {
@@ -36,15 +39,20 @@ type Target struct {
 
 // App config
 type Config struct {
-	ProjectPath   string
-	FilterTargets []string
-	FilterPaths   []string
-	FilterPattern string
-	InvertFilter  bool
-	IncludeMasked bool
-	ZeroWarnOnly  bool
-	MeterLOC      bool
-	Tolerance     int
+	ProjectPath          string
+	FilterTargets        []string
+	FilterPaths          []string
+	FilterWarnPaths      []string
+	FilterPattern        string
+	InvertFilter         bool
+	InvertTargetFilter   bool
+	InvertPathFilter     bool
+	InvertRegexp         bool
+	InvertWarnpathFilter bool
+	IncludeMasked        bool
+	ZeroWarnOnly         bool
+	MeterLOC             bool
+	Tolerance            int
 }
 type RunConditions struct {
 	LastReport    *XCCoverageReport
@@ -53,6 +61,7 @@ type RunConditions struct {
 	Regexp        *regexp.Regexp
 	DiffUnitChan  chan DiffUnit
 	TotalUnitChan chan DiffUnit
+	WaitGroup     *sync.WaitGroup
 }
 
 // Coverage diff unit

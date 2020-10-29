@@ -12,6 +12,8 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 )
@@ -46,6 +48,11 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 		getWorkdir(),
 		"Project root to get relative paths. If empty and missing from config working dir would be used.",
 	)
+	mute := flag.String(
+		"nw",
+		"",
+		"Comma separated strings of paths not to warn. When a path has one of the values of this list warnings for the files on path would be muted. Coverage would still be metered.",
+	)
 	filtr := flag.String("rg",
 		dumbValue,
 		"Regex filter. Applied to paths.",
@@ -54,6 +61,11 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 		"i",
 		false,
 		"Invert filter. Applied to -rg and to targets/paths filter lists in config. If no filters supplied prevents reporting allowing nothing.",
+	)
+	selInvert := flag.String(
+		"si",
+		"",
+		"Selectively invert filters. When `-i` is set it is equvalent to `-si=prtw` and always have precendence over this flag. Values here are:\n`p` — inverts paths filter,\n`r` — inverts regex,\n`t` — inverts targets filter,\n`w` — inverts warnings filter.",
 	)
 	includeMasked := flag.Bool(
 		"m",
@@ -96,11 +108,34 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 		}
 		cfg.Tolerance = i
 	}
+	if *mute != "" {
+		cfg.FilterWarnPaths = strings.Split(*mute, ",")
+	}
 	if *filtr != dumbValue {
 		cfg.FilterPattern = *filtr
 	}
 	if *fInvert {
 		cfg.InvertFilter = true
+	}
+	if cfg.InvertFilter {
+		cfg.InvertPathFilter = true
+		cfg.InvertRegexp = true
+		cfg.InvertTargetFilter = true
+		cfg.InvertWarnpathFilter = true
+	}
+	for _, c := range *selInvert {
+		if c == 'p' {
+			cfg.InvertPathFilter = true
+		}
+		if c == 'r' {
+			cfg.InvertRegexp = true
+		}
+		if c == 't' {
+			cfg.InvertTargetFilter = true
+		}
+		if c == 'w' {
+			cfg.InvertWarnpathFilter = true
+		}
 	}
 	if *includeMasked {
 		cfg.IncludeMasked = true
@@ -136,6 +171,8 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 		return
 	}
 	rnCnd.LastReport = lstXccRep
+
+	rnCnd.WaitGroup = &sync.WaitGroup{}
 
 	return
 }

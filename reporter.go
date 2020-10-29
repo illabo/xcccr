@@ -14,9 +14,10 @@ func performReport(rnCnd *RunConditions) {
 	go func(tu *DiffUnit) {
 		for {
 			totalsUnit = <-rnCnd.TotalUnitChan
+			rnCnd.WaitGroup.Done()
 		}
 	}(&totalsUnit)
-	go unitCounter(rnCnd.DiffUnitChan, rnCnd.TotalUnitChan)
+	go unitCounter(rnCnd)
 
 	lastFlatTgs := flattenTargets(last)
 	for _, ct := range current.Targets {
@@ -24,11 +25,12 @@ func performReport(rnCnd *RunConditions) {
 			if lt, ok := lastFlatTgs[ct.Name]; ok {
 				diffTargets(rnCnd, &lt, &ct)
 			} else {
-				// inspectTargetFiles(rnCnd, &ct)
 				diffTargets(rnCnd, &Target{}, &ct)
 			}
 		}
 	}
+
+	rnCnd.WaitGroup.Wait()
 
 	produceVerdict(rnCnd.Config, &totalsUnit, last, current)
 }
@@ -45,9 +47,9 @@ func produceVerdict(cfg *Config, tu *DiffUnit, last, current *XCCoverageReport) 
 	covMsg := "Code coverage is %s"
 
 	if lastPct > currentPct {
-		covMsg = fmt.Sprintf(covMsg, "lowered")
+		covMsg = fmt.Sprintf(covMsg, "increased")
 	} else if lastPct < currentPct {
-		covMsg = fmt.Sprintf(covMsg, "heightened")
+		covMsg = fmt.Sprintf(covMsg, "decreased")
 	} else {
 		covMsg = fmt.Sprintf(covMsg, "not changed")
 	}
@@ -88,68 +90,82 @@ func exitMessage(message string) {
 
 func diffTargets(rnCnd *RunConditions, lastTgt, currentTgt *Target) {
 	ltgtFlatFiles := flattenFiles(lastTgt)
+	// Wait for every file coverage to be reported.
+	rnCnd.WaitGroup.Add(len(currentTgt.Files))
 	for _, curFile := range currentTgt.Files {
-		if pathIsAllowed(rnCnd, &curFile) {
-			if lstFile, ok := ltgtFlatFiles[curFile.Name]; ok {
-				rnCnd.DiffUnitChan <- DiffUnit{
-					LastExecutableLines:    lstFile.ExecutableLines,
-					LastCoveredLines:       lstFile.CoveredLines,
-					CurrentExecutableLines: curFile.ExecutableLines,
-					CurrentCoveredLines:    curFile.CoveredLines,
-				}
+		if pathIsAllowed(rnCnd, &curFile) == false {
+			// Path is excluded from coverage report.
+			// Don't expect coverage unit. Try next.
+			rnCnd.WaitGroup.Done()
+			continue
+		}
 
-				lfsFlatFuncs := flattenFuncs(&lstFile)
-				for _, curFunc := range curFile.Functions {
-					if lstFunc, ok := lfsFlatFuncs[curFunc.Name]; ok {
-						warnFuncCov(curFile.Path, &lstFunc, &curFunc)
-					} else {
-						warnZeroFuncCov(curFile.Path, &curFunc)
-					}
-				}
+		var lfsFlatFuncs map[string]Function
+		lstFile := ltgtFlatFiles[curFile.Name]
+		curFilePth := strings.TrimPrefix(curFile.Path, rnCnd.Config.ProjectPath)
+
+		lfsFlatFuncs = flattenFuncs(&lstFile)
+		rnCnd.DiffUnitChan <- DiffUnit{
+			LastExecutableLines:    lstFile.ExecutableLines,
+			LastCoveredLines:       lstFile.CoveredLines,
+			CurrentExecutableLines: curFile.ExecutableLines,
+			CurrentCoveredLines:    curFile.CoveredLines,
+		}
+
+		if warnIsAllowed(rnCnd, &curFile) == false {
+			// Don't warn, count coverage only.
+			continue
+		}
+
+		fileReport := "\n"
+		if curFile.CoveredLines < lstFile.CoveredLines {
+			var warnMsg string
+			if rnCnd.Config.MeterLOC {
+				warnMsg = fmt.Sprintf("covered %dLOC, was %dLOC.", curFile.CoveredLines, lstFile.CoveredLines)
+			}
+			fileReport = fmt.Sprintf("File coverage is reduced: %s\n", warnMsg)
+		}
+		if curFile.CoveredLines == 0 {
+			fileReport = "File is not covered.\n"
+		}
+
+		for _, curFunc := range curFile.Functions {
+			if lstFunc, ok := lfsFlatFuncs[curFunc.Name]; ok {
+				fileReport = fmt.Sprintf("%s%s", fileReport, warnFuncCov(&lstFunc, &curFunc))
 			} else {
-				rnCnd.DiffUnitChan <- DiffUnit{
-					LastExecutableLines:    0,
-					LastCoveredLines:       0,
-					CurrentExecutableLines: curFile.ExecutableLines,
-					CurrentCoveredLines:    curFile.CoveredLines,
-				}
-
-				inspectFileFuncs(&curFile)
+				fileReport = fmt.Sprintf("%s%s", fileReport, warnZeroFuncCov(&curFunc))
 			}
 		}
+		if fileReport != "\n" {
+			fmt.Printf("::warning file=%s::%s", curFilePth, fileReport)
+		}
+
 	}
 }
 
-func inspectFileFuncs(file *File) {
-	for _, ff := range file.Functions {
-		warnZeroFuncCov(file.Path, &ff)
-	}
-}
-
-func warnFuncCov(filePth string, lstFunc, curFunc *Function) {
+func warnFuncCov(lstFunc, curFunc *Function) string {
 	if lstFunc.LineCoverage > curFunc.LineCoverage {
-		fmt.Printf(
-			"::warning file=%s,line=%d::%s coverage is lowered to %d%% (was %d%%).\n",
-			strings.TrimPrefix(filePth, getWorkdir()),
+		return fmt.Sprintf(
+			"%d | %s coverage is lowered to %d%% (was %d%%).\n",
 			curFunc.LineNumber,
 			curFunc.Name,
 			percentify(curFunc.LineCoverage),
 			percentify(lstFunc.LineCoverage),
 		)
-		return
+
 	}
-	warnZeroFuncCov(filePth, curFunc)
+	return warnZeroFuncCov(curFunc)
 }
 
-func warnZeroFuncCov(filePth string, curFunc *Function) {
+func warnZeroFuncCov(curFunc *Function) string {
 	if percentify(curFunc.LineCoverage) == 0 {
-		fmt.Printf(
-			"::warning file=%s,line=%d::%s coverage is 0%%.\n",
-			strings.TrimPrefix(filePth, getWorkdir()),
+		return fmt.Sprintf(
+			"%d | %s is not covered.\n",
 			curFunc.LineNumber,
 			curFunc.Name,
 		)
 	}
+	return ""
 }
 
 func linesRatio(cov, exec int) float64 {
@@ -191,23 +207,18 @@ func targetIsAllowed(rnCnd *RunConditions, tgt *Target) bool {
 	if rnCnd.Regexp != nil {
 		return true // Allow any target and let regex sortout filtering on paths.
 	}
-	return elInList(rnCnd.Config.FilterTargets, tgt.Name) == rnCnd.Config.InvertFilter
+	return elSubInList(rnCnd.Config.FilterTargets, tgt.Name) == rnCnd.Config.InvertTargetFilter
 }
 
 func pathIsAllowed(rnCnd *RunConditions, fl *File) bool {
 	if rnCnd.Regexp != nil {
 		return elemAllowedWithRegex(rnCnd, fl.Path)
 	}
-	return elSubInList(rnCnd.Config.FilterPaths, fl.Path) == rnCnd.Config.InvertFilter
+	return elSubInList(rnCnd.Config.FilterPaths, fl.Path) == rnCnd.Config.InvertPathFilter
 }
 
-func elInList(elList []string, elName string) bool {
-	for _, el := range elList {
-		if strings.Contains(elName, el) {
-			return true
-		}
-	}
-	return false
+func warnIsAllowed(rnCnd *RunConditions, fl *File) bool {
+	return elSubInList(rnCnd.Config.FilterWarnPaths, fl.Path) == rnCnd.Config.InvertWarnpathFilter
 }
 
 func elSubInList(elList []string, elName string) bool {
@@ -223,19 +234,18 @@ func elemAllowedWithRegex(rnCnd *RunConditions, el string) bool {
 	if rnCnd.Regexp == nil {
 		return true
 	}
-	return (rnCnd.Regexp.Find([]byte(el)) != nil) == rnCnd.Config.InvertFilter
+	return (rnCnd.Regexp.Find([]byte(el)) != nil) == rnCnd.Config.InvertRegexp
 }
 
-func unitCounter(duChan, totalChan chan DiffUnit) {
+func unitCounter(rnCnd *RunConditions) {
 	totalDu := DiffUnit{}
 	for {
-		select {
-		case u := <-duChan:
-			totalDu.CurrentCoveredLines += u.CurrentCoveredLines
-			totalDu.CurrentExecutableLines += u.CurrentExecutableLines
-			totalDu.LastCoveredLines += u.LastCoveredLines
-			totalDu.LastExecutableLines += u.LastExecutableLines
-		case totalChan <- totalDu:
-		}
+		u := <-rnCnd.DiffUnitChan
+		totalDu.CurrentCoveredLines += u.CurrentCoveredLines
+		totalDu.CurrentExecutableLines += u.CurrentExecutableLines
+		totalDu.LastCoveredLines += u.LastCoveredLines
+		totalDu.LastExecutableLines += u.LastExecutableLines
+
+		rnCnd.TotalUnitChan <- totalDu
 	}
 }
