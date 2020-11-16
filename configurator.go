@@ -65,7 +65,7 @@ func prepareRunConditions() (rnCnd *RunConditions, err error) {
 	selInvert := flag.String(
 		"si",
 		"",
-		"Selectively invert filters. When `-i` is set it is equvalent to `-si=prtw` and always have precendence over this flag. Values here are:\n`p` — inverts paths filter,\n`r` — inverts regex,\n`t` — inverts targets filter,\n`w` — inverts warnings filter.",
+		"Selectively invert filters. When `-i` is set it is equivalent to `-si=prtw` and always have precedence over this flag. Values here are:\n`p` — inverts paths filter,\n`r` — inverts regex,\n`t` — inverts targets filter,\n`w` — inverts warnings filter.",
 	)
 	includeMasked := flag.Bool(
 		"m",
@@ -218,6 +218,7 @@ func getLastCoverage(lstPth *string) (lstXccRep *XCCoverageReport, err error) {
 			return
 		}
 		if notExist {
+			err = nil
 			fmt.Println("Previous report file not found. Continuing with current report only.")
 		}
 	}

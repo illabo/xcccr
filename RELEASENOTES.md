@@ -1,4 +1,8 @@
 
+### Hotfix (0.3.3)
+- Falls back now as intended to current report when last report file is missing. A `no such file or directory` error wasn't overriden correctly.
+- Fixed some typos in human readable texts (e.g. readme and cli help).
+
 ### Hotfix (0.3.2)
 - Added missing warning message for file coverage % when reduced.
 - Some warnings weren't visible. Seem GitHub Actions warnings should be oneliners. Removed newline symbols.

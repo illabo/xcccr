@@ -1,4 +1,4 @@
-ProjectPath     = "/Users/home/" # Usualy ok to leave empty. If empty gets current working dir at runtime.
+ProjectPath     = "/Users/home/" # Usually ok to leave empty. If empty gets current working dir at runtime.
 FilterTargets   = ["CoreTests"]  # If a target name contains one of these substrings the target would be filtered. Empty string "" matches everything. Please note that if regex is used targets filtering has no effect.
 FilterPaths     = ["Tests","UITests","Constants.swift"] # If a path contains one of these substrings the path (file, dir) would be filtered. Empty string "" matches everything. Please note that if regex is used path filtering has no effect.
 FilterWarnPaths = ["Project/Target/File.swift"] # If a path contains one of these substrings warnings would be muted for the path (file, dir). Coverage for the paths would still be metered.

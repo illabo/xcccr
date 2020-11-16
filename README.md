@@ -6,13 +6,13 @@ This dead simple tool only works with Apple's `xccov` generated code coverage re
 --------|------------
  `-cur` | For path of "current report" file. A report to be checked.
  `-lst` | For path of "last report" file. A report to be base for determining whether the coverage metrics is lowered or became higher in "current" report.
- `-tol` | Percent to be tolerated before error. E.g. last is 70%, current is 65% and tol is 10 means no error.
+ `-tol` | Percent to be tolerated before error. E.g., last is 70%, current is 65% and tol is 10 means no error.
  `-proj` | Project root to get relative paths. If empty and missing from config working dir would be used. Usually in GitHub Actions you just want the working dir.
  `-nw` | Comma separated strings of paths not to warn. When a path has one of the values of this list warnings for the files on path would be muted. Coverage would still be metered.
  `-rg` | Regex filter, pass it in quotes e.g. `-rg="[\s\S]\.swift"`. Matching paths would be ignored. When used with `-i` the result is opposite: only matching paths would be visible to reporter. Please note that if regex is used targets and paths filtering set in config has no effect.
  `-i` | Invert filter. Applied to -rg and to targets/paths filter lists in config. If no filters supplied prevents reporting allowing nothing.
- `-si` | Selectively invert filters. When `-i` is set it is equvalent to `-si=prtw` and always have precendence over this flag. Values here are: `p` — inverts paths filter, `r` — inverts regex, `t` — inverts targets filter, `w` — inverts warnings filter.
- `-m` | Include masked files coverage in total metrics. If true warnings would be produced only for unfiltered targets/paths, but total coverage would be  reported for all the files as listed in original xccov json.
+ `-si` | Selectively invert filters. When `-i` is set it is equivalent to `-si=prtw` and always have precedence over this flag. Values here are: `p` — inverts paths filter, `r` — inverts regex, `t` — inverts targets filter, `w` — inverts warnings filter.
+ `-m` | Include masked files coverage in total metrics. If true warnings would be produced only for unfiltered targets/paths, but total coverage would be reported for all the files as listed in original xccov json.
  `-loc` | Count covered LOCs diff instead of percent coverage.
  `-z` | Don't error on 0% coverage, produce warning only.
  `-cfg` | Path to config. Parameters passed with the flags have precedence and overrides the values stored in config. Config passed with this flag overrides default config at `.xcccr.toml`. If there aren't any config default values are used.
